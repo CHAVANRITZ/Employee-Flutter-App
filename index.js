@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const employeeRoute = require ("./routes/employee.route.js");
-
+const authRoute = require ("./routes/auth.route");
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +15,7 @@ app.use(express.json());
 
 //routes
 app.use("/api/employee", employeeRoute);
+app.use("/api/auth",authRoute);
 
 app.get('/', (req, res) => {
   res.send("Bhai server ban gaya");

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const EmployeeSchema = mongoose.Schema(
-  {
+  { 
     name: {
       type: String,
       required: [true, "Enter Employee Name"],
