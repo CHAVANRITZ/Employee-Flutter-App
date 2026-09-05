@@ -20,12 +20,15 @@ class _AddEditScreenState extends State<AddEditScreen> {
   late TextEditingController _empIdController;
   late TextEditingController _nameController;
   late TextEditingController _emailController;
+  late TextEditingController _passwordController;
   late TextEditingController _deptController;
   late TextEditingController _designationController;
   late TextEditingController _cityController;
   late TextEditingController _imageController;
+
   String _gender = 'Male';
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   File? _pickedImageFile;
   final ImagePicker _picker = ImagePicker();
@@ -39,6 +42,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
     _empIdController = TextEditingController(text: emp?.empId.toString() ?? '');
     _nameController = TextEditingController(text: emp?.name ?? '');
     _emailController = TextEditingController(text: emp?.email ?? '');
+    _passwordController = TextEditingController(); // Start empty on edit
     _deptController = TextEditingController(text: emp?.department ?? '');
     _designationController = TextEditingController(text: emp?.designation ?? '');
     _cityController = TextEditingController(text: emp?.city ?? '');
@@ -51,6 +55,7 @@ class _AddEditScreenState extends State<AddEditScreen> {
     _empIdController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _deptController.dispose();
     _designationController.dispose();
     _cityController.dispose();
@@ -121,11 +126,14 @@ class _AddEditScreenState extends State<AddEditScreen> {
 
     setState(() => _isLoading = true);
 
+    final passwordText = _passwordController.text.trim();
+
     final employeeData = Employee(
       id: widget.employee?.id,
       empId: int.parse(_empIdController.text.trim()),
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
+      password: passwordText.isNotEmpty ? passwordText : null,
       department: _deptController.text.trim(),
       designation: _designationController.text.trim(),
       city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
@@ -286,6 +294,29 @@ class _AddEditScreenState extends State<AddEditScreen> {
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Enter email';
                     if (!val.contains('@')) return 'Enter a valid email';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: isEditing ? 'Password (leave blank to keep current)' : 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  validator: (val) {
+                    if (!isEditing && (val == null || val.trim().length < 4)) {
+                      return 'Password must be at least 4 characters';
+                    }
+                    if (isEditing && val != null && val.isNotEmpty && val.trim().length < 4) {
+                      return 'Password must be at least 4 characters';
+                    }
                     return null;
                   },
                 ),

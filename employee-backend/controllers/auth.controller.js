@@ -1,65 +1,90 @@
 const Employee = require('../models/employee.model');
 
-// Registration: creates the full Employee account
+// Registration: Creates full Employee account
 const registerUser = async (req, res) => {
   try {
     const { emp_id, name, email, password, department, designation, city, gender, image } = req.body;
 
+    // Validate mandatory fields
     if (!emp_id || !name || !email || !password || !department || !designation) {
       return res.status(400).json({ message: 'All required fields must be filled' });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmpId = Number(emp_id);
+
+    if (isNaN(cleanEmpId)) {
+      return res.status(400).json({ message: 'Employee ID must be a valid number' });
+    }
+
+    // Check for existing duplicate records
     const existingEmp = await Employee.findOne({
-      $or: [{ email: email.toLowerCase() }, { emp_id }],
+      $or: [{ email: cleanEmail }, { emp_id: cleanEmpId }],
     });
 
     if (existingEmp) {
-      return res.status(400).json({ message: 'Employee ID or Email already registered' });
+      const duplicateField = existingEmp.emp_id === cleanEmpId ? 'Employee ID' : 'Email';
+      return res.status(400).json({ message: `${duplicateField} is already registered` });
     }
 
+    // Create new employee
     const newEmployee = await Employee.create({
-      emp_id,
-      name,
-      email: email.toLowerCase(),
-      password,
-      department,
-      designation,
-      city: city || null,
+      emp_id: cleanEmpId,
+      name: name.trim(),
+      email: cleanEmail,
+      password: password.trim(),
+      department: department.trim(),
+      designation: designation.trim(),
+      city: city ? city.trim() : null,
       gender: gender || 'Male',
       image: image || null,
     });
 
+    // Strip password before returning JSON response
+    const responseData = newEmployee.toObject();
+    delete responseData.password;
+
     res.status(201).json({
       message: 'Registration successful',
-      employee: newEmployee,
+      employee: responseData,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Login: matches email/username and password
+// Login: Supports logging in via Email or Employee ID
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
+    const identifier = (email || username || '').trim();
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ message: 'Email/Employee ID and password are required' });
     }
 
-    const employee = await Employee.findOne({ email: email.toLowerCase() });
+    // Search by email or numerical emp_id if digits are provided
+    const queryConditions = [{ email: identifier.toLowerCase() }];
+    if (!isNaN(Number(identifier)) && identifier !== '') {
+      queryConditions.push({ emp_id: Number(identifier) });
+    }
 
-    if (!employee || employee.password !== password) {
-      return res.status(401).json({ message: 'Invalid Email or Password' });
+    const employee = await Employee.findOne({ $or: queryConditions });
+
+    if (!employee || employee.password !== password.trim()) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     res.status(200).json({
       message: 'Login successful',
       user: {
         id: employee._id,
+        emp_id: employee.emp_id,
         name: employee.name,
         email: employee.email,
         department: employee.department,
+        designation: employee.designation,
+        image: employee.image,
       },
     });
   } catch (error) {
