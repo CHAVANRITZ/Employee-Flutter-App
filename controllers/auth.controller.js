@@ -1,57 +1,73 @@
-const User = require('../models/user.model');
+const Employee = require('../models/employee.model');
 
-
-
-//Regidtration 
-
+// Registration: creates the full Employee account
 const registerUser = async (req, res) => {
-    try{
-        const {username, password} = req.body;
-        if(!username || !password){
-            return res.status(400).json({message: "Username & Password required"})
-        }
-        const existingUser = await User.findOne({ username});
-        if(existingUser ){
-            return res.status(400).json({message:"User Already Exists"});
-        }
-        const newUser = await User.create({ username, password});
-        res.status(201).json({message:"User Registered ", userId: newUser._id});
-
-    } catch(error){
-        res.status(500).json({ message: error.message});
-    }
-};
-
-
-// Login Appi 
-
-const loginUser = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { emp_id, name, email, password, department, designation, city, gender, image } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username & Password Required" });
+    if (!emp_id || !name || !email || !password || !department || !designation) {
+      return res.status(400).json({ message: 'All required fields must be filled' });
     }
 
-    const user = await User.findOne({ username });
+    const existingEmp = await Employee.findOne({
+      $or: [{ email: email.toLowerCase() }, { emp_id }],
+    });
 
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: "Invalid Username or Password" });
+    if (existingEmp) {
+      return res.status(400).json({ message: 'Employee ID or Email already registered' });
     }
 
-    res.status(200).json({
-      message: "Login successful",
-      user: { id: user._id, username: user.username },
+    const newEmployee = await Employee.create({
+      emp_id,
+      name,
+      email: email.toLowerCase(),
+      password,
+      department,
+      designation,
+      city: city || null,
+      gender: gender || 'Male',
+      image: image || null,
+    });
+
+    res.status(201).json({
+      message: 'Registration successful',
+      employee: newEmployee,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// Login: matches email/username and password
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+
+    const employee = await Employee.findOne({ email: email.toLowerCase() });
+
+    if (!employee || employee.password !== password) {
+      return res.status(401).json({ message: 'Invalid Email or Password' });
+    }
+
+    res.status(200).json({
+      message: 'Login successful',
+      user: {
+        id: employee._id,
+        name: employee.name,
+        email: employee.email,
+        department: employee.department,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
-registerUser,
-loginUser,
-
+  registerUser,
+  loginUser,
 };

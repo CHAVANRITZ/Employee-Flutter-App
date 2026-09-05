@@ -1,48 +1,52 @@
 const mongoose = require('mongoose');
 
-const EmployeeSchema = mongoose.Schema(
-  { 
-    name: {
-      type: String,
-      required: [true, "Enter Employee Name"],
-      trim: true,
-    },
+const EmployeeSchema = new mongoose.Schema(
+  {
     emp_id: {
       type: Number,
-      required: [true, "Enter Employee ID"],
+      required: true,
       unique: true,
     },
-     department: {
+    name: {
       type: String,
-      required: [true, "Enter Department"],
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    department: {
+      type: String,
+      required: true,
       trim: true,
     },
     designation: {
       type: String,
-      required: [true, "Enter Designation"],
+      required: true,
       trim: true,
     },
     city: {
       type: String,
-      required: false,
-      trim: true,
+      default: null,
     },
     gender: {
       type: String,
-      required: false,
+      default: 'Male',
     },
-   
     image: {
       type: String,
-      required: false,
-      default: "https://clipart-library.com/new_gallery/301-3016414_headshot-silhouette-grey-headshot-silhouette.png",
+      default: null,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Employee = mongoose.model("Employee", EmployeeSchema);
-
-module.exports = Employee;
+module.exports = mongoose.model('Employee', EmployeeSchema);
