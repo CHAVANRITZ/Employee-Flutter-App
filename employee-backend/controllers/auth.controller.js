@@ -1,5 +1,5 @@
 const Employee = require('../models/employee.model');
-
+const DEFAULT_AVATAR = "https://clipart-library.com/new_gallery/301-3016414_headshot-silhouette.png";
 // Registration: Creates full Employee account
 const registerUser = async (req, res) => {
   try {

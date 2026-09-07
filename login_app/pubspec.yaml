@@ -30,7 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Existing dependencies
   http: ^1.2.0
+  # Add this for real-time WebSocket communication
+  socket_io_client: ^3.0.1
 
 
 

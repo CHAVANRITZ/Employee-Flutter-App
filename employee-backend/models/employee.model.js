@@ -43,7 +43,7 @@ const EmployeeSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      default: null,
+      default: "https://clipart-library.com/new_gallery/301-3016414_headshot-silhouette-png.png",
     },
   },
   { timestamps: true }

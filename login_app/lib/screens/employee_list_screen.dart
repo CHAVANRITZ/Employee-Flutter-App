@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/employee_model.dart';
 import '../services/api_service.dart';
+import '../services/socket_service.dart';
 import 'add_edit_screen.dart';
 
 class EmployeeListScreen extends StatefulWidget {
@@ -20,34 +21,93 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   void initState() {
     super.initState();
     _fetchEmployees();
+    _initLiveAlerts();
+  }
+
+  void _initLiveAlerts() {
+    SocketService.initSocket(
+      onNotification: (data) {
+        if (!mounted) return;
+
+        final message = data['message'] ?? 'Employee list updated';
+        final type = data['type'] ?? 'UPDATED';
+
+        // 1. Instantly refresh directory with active search query preserved
+        _fetchEmployees(query: _searchController.text.trim());
+
+        // 2. Customize banner color & icon based on event
+        Color bannerColor = const Color(0xFF2563EB); // Blue for UPDATED
+        IconData bannerIcon = Icons.update_rounded;
+
+        if (type == 'CREATED') {
+          bannerColor = const Color(0xFF059669); // Green for CREATED
+          bannerIcon = Icons.person_add_alt_1_rounded;
+        } else if (type == 'DELETED') {
+          bannerColor = const Color(0xFFDC2626); // Red for DELETED
+          bannerIcon = Icons.delete_outline_rounded;
+        }
+
+        // 3. Show floating live alert banner
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: bannerColor,
+            content: Row(
+              children: [
+                Icon(bannerIcon, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      },
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    SocketService.disconnect();
     super.dispose();
   }
 
   Widget _buildAvatar(String? image) {
-    if (image == null || image.trim().isEmpty) {
-      return Icon(Icons.person_rounded, color: Colors.blue.shade300, size: 32);
-    }
+    const defaultUrl = 'https://clipart-library.com/new_gallery/301-3016414_headshot-silhouette.png';
+    final resolvedImage = (image != null && image.trim().isNotEmpty && !image.contains('-png.png'))
+        ? image
+        : defaultUrl;
 
-    if (image.startsWith('http')) {
-      return Image.network(
-        image,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Icon(Icons.person_rounded, color: Colors.blue.shade300, size: 32),
-      );
-    }
-
-    if (image.startsWith('data:image')) {
+    // 1. Base64
+    if (resolvedImage.startsWith('data:image')) {
       try {
-        final bytes = base64Decode(image.split(',').last);
+        final bytes = base64Decode(resolvedImage.split(',').last);
         return Image.memory(bytes, fit: BoxFit.cover);
-      } catch (_) {
-        return Icon(Icons.person_rounded, color: Colors.blue.shade300, size: 32);
-      }
+      } catch (_) {}
+    }
+
+    // 2. Network image with User-Agent
+    if (resolvedImage.startsWith('http')) {
+      return Image.network(
+        resolvedImage,
+        fit: BoxFit.cover,
+        headers: const {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Image load failed for $resolvedImage: $error');
+          return Icon(Icons.person_rounded, color: Colors.blue.shade300, size: 32);
+        },
+      );
     }
 
     return Icon(Icons.person_rounded, color: Colors.blue.shade300, size: 32);
@@ -102,7 +162,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
+      backgroundColor: const Color(0xFFF5AE49),
       appBar: AppBar(
         title: const Text(
           'Employees',
